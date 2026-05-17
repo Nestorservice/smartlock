@@ -1,0 +1,265 @@
+#
+# There is insufficient memory for the Java Runtime Environment to continue.
+# Native memory allocation (malloc) failed to allocate 524288 bytes. Error detail: AllocateHeap
+# Possible reasons:
+#   The system is out of physical RAM or swap space
+#   This process is running with CompressedOops enabled, and the Java Heap may be blocking the growth of the native heap
+# Possible solutions:
+#   Reduce memory load on the system
+#   Increase physical memory or swap space
+#   Check if swap backing store is full
+#   Decrease Java heap size (-Xmx/-Xms)
+#   Decrease number of Java threads
+#   Decrease Java thread stack sizes (-Xss)
+#   Set larger code cache with -XX:ReservedCodeCacheSize=
+#   JVM is running with Unscaled Compressed Oops mode in which the Java heap is
+#     placed in the first 4GB address space. The Java Heap base address is the
+#     maximum limit for the native heap growth. Please use -XX:HeapBaseMinAddress
+#     to set the Java Heap base and to place the Java Heap above 4GB virtual address.
+# This output file may be truncated or incomplete.
+#
+#  Out of Memory Error (allocation.cpp:44), pid=14044, tid=14632
+#
+# JRE version:  (21.0.10+7) (build )
+# Java VM: OpenJDK 64-Bit Server VM (21.0.10+7-LTS, mixed mode, sharing, tiered, compressed oops, compressed class ptrs, parallel gc, windows-amd64)
+# No core dump will be written. Minidumps are not enabled by default on client versions of Windows
+#
+
+---------------  S U M M A R Y ------------
+
+Command Line: --add-modules=ALL-SYSTEM --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/sun.nio.fs=ALL-UNNAMED -Declipse.application=org.eclipse.jdt.ls.core.id1 -Dosgi.bundles.defaultStartLevel=4 -Declipse.product=org.eclipse.jdt.ls.core.product -Djava.import.generatesMetadataFilesAtProjectRoot=false -DDetectVMInstallationsJob.disabled=true -Dfile.encoding=utf8 -XX:+UseParallelGC -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 -Dsun.zip.disableMemoryMapping=true -Xmx2G -Xms100m -Xlog:disable -javaagent:c:\Users\Nestor Corneille\.antigravity\extensions\redhat.java-1.54.0-win32-x64\lombok\lombok-1.18.39-4050.jar c:\Users\Nestor Corneille\.antigravity\extensions\redhat.java-1.54.0-win32-x64\server\plugins\org.eclipse.equinox.launcher_1.7.100.v20251111-0406.jar -configuration c:\Users\Nestor Corneille\AppData\Roaming\Antigravity\User\globalStorage\redhat.java\1.54.0\config_ss_win -data c:\Users\Nestor Corneille\AppData\Roaming\Antigravity\User\workspaceStorage\361cd7a72a232ae6941662571b4a6975\redhat.java\ss_ws --pipe=\\.\pipe\lsp-d57ba24d8dd4a53e619c99fb9deeaae9-sock
+
+Host: Intel(R) Core(TM) i7-6600U CPU @ 2.60GHz, 4 cores, 7G,  Windows 11 , 64 bit Build 22621 (10.0.22621.3958)
+Time: Thu May 14 10:46:51 2026 Afr. centrale Ouest elapsed time: 0.485898 seconds (0d 0h 0m 0s)
+
+---------------  T H R E A D  ---------------
+
+Current thread (0x000001b57c9f37b0):  JavaThread "Unknown thread" [_thread_in_vm, id=14632, stack(0x0000009b42300000,0x0000009b42400000) (1024K)]
+
+Stack: [0x0000009b42300000,0x0000009b42400000]
+Native frames: (J=compiled Java code, j=interpreted, Vv=VM code, C=native code)
+V  [jvm.dll+0x6d7a39]
+V  [jvm.dll+0x8b4b26]
+V  [jvm.dll+0x8b70de]
+V  [jvm.dll+0x8b77c3]
+V  [jvm.dll+0x284346]
+V  [jvm.dll+0xc1277]
+V  [jvm.dll+0x7b6340]
+V  [jvm.dll+0x7b68eb]
+V  [jvm.dll+0x87ec52]
+V  [jvm.dll+0x3c4a81]
+V  [jvm.dll+0x867d25]
+V  [jvm.dll+0x457b31]
+V  [jvm.dll+0x459721]
+C  [jli.dll+0x52d0]
+C  [ucrtbase.dll+0x29333]
+C  [KERNEL32.DLL+0x1257d]
+C  [ntdll.dll+0x5af08]
+
+
+---------------  P R O C E S S  ---------------
+
+Threads class SMR info:
+_java_thread_list=0x00007ffb9a5ea1c8, length=0, elements={
+}
+
+Java Threads: ( => current thread )
+Total: 0
+
+Other Threads:
+  0x000001b57ca12ed0 WorkerThread "GC Thread#0"                     [id=13040, stack(0x0000009b42400000,0x0000009b42500000) (1024K)]
+
+=>0x000001b57c9f37b0 (exited) JavaThread "Unknown thread"    [_thread_in_vm, id=14632, stack(0x0000009b42300000,0x0000009b42400000) (1024K)]
+Total: 2
+
+Threads with active compile tasks:
+Total: 0
+
+VM state: not at safepoint (not fully initialized)
+
+VM Mutex/Monitor currently owned by a thread: None
+
+Heap address: 0x0000000080000000, size: 2048 MB, Compressed Oops mode: 32-bit
+
+CDS archive(s) mapped at: [0x000001b514000000-0x000001b514ba0000-0x000001b514ba0000), size 12189696, SharedBaseAddress: 0x000001b514000000, ArchiveRelocationMode: 1.
+Compressed class space mapped at: 0x000001b515000000-0x000001b555000000, reserved size: 1073741824
+Narrow klass base: 0x000001b514000000, Narrow klass shift: 0, Narrow klass range: 0x100000000
+
+GC Precious Log:
+ CardTable entry size: 512
+ CPUs: 4 total, 4 available
+ Memory: 8083M
+ Large Page Support: Disabled
+ NUMA Support: Disabled
+ Compressed Oops: Enabled (32-bit)
+ Alignments: Space 512K, Generation 512K, Heap 2M
+ Heap Min Capacity: 100M
+ Heap Initial Capacity: 100M
+ Heap Max Capacity: 2G
+ Pre-touch: Disabled
+ Parallel Workers: 4
+
+Heap:
+ PSYoungGen      total 29696K, used 0K [0x00000000d5580000, 0x00000000d7680000, 0x0000000100000000)
+  eden space 25600K, 0% used [0x00000000d5580000,0x00000000d5580000,0x00000000d6e80000)
+  from space 4096K, 0% used [0x00000000d7280000,0x00000000d7280000,0x00000000d7680000)
+  to   space 4096K, 0% used [0x00000000d6e80000,0x00000000d6e80000,0x00000000d7280000)
+ ParOldGen       total 68608K, used 0K [0x0000000080000000, 0x0000000084300000, 0x00000000d5580000)
+  object space 68608K, 0% used [0x0000000080000000,0x0000000080000000,0x0000000084300000)
+ Metaspace       used 0K, committed 0K, reserved 1048576K
+  class space    used 0K, committed 0K, reserved 1048576K
+
+Card table byte_map: [0x000001b57c3b0000,0x000001b57c7c0000] _byte_map_base: 0x000001b57bfb0000
+
+Marking Bits: (ParMarkBitMap*) 0x00007ffb9a663450
+ Begin Bits: [0x000001b50f000000, 0x000001b511000000)
+ End Bits:   [0x000001b511000000, 0x000001b513000000)
+
+GC Heap History (0 events):
+No events
+
+Dll operation events (1 events):
+Event: 0.136 Loaded shared library c:\Users\Nestor Corneille\.antigravity\extensions\redhat.java-1.54.0-win32-x64\jre\21.0.10-win32-x86_64\bin\java.dll
+
+Deoptimization events (0 events):
+No events
+
+Classes loaded (0 events):
+No events
+
+Classes unloaded (0 events):
+No events
+
+Classes redefined (0 events):
+No events
+
+Internal exceptions (0 events):
+No events
+
+ZGC Phase Switch (0 events):
+No events
+
+VM Operations (0 events):
+No events
+
+Memory protections (0 events):
+No events
+
+Nmethod flushes (0 events):
+No events
+
+Events (0 events):
+No events
+
+
+Dynamic libraries:
+0x00007ff614bb0000 - 0x00007ff614bbe000 	c:\Users\Nestor Corneille\.antigravity\extensions\redhat.java-1.54.0-win32-x64\jre\21.0.10-win32-x86_64\bin\java.exe
+0x00007ffc33bd0000 - 0x00007ffc33de7000 	C:\Windows\SYSTEM32\ntdll.dll
+0x00007ffc324e0000 - 0x00007ffc325a4000 	C:\Windows\System32\KERNEL32.DLL
+0x00007ffc310d0000 - 0x00007ffc31487000 	C:\Windows\System32\KERNELBASE.dll
+0x00007ffc31610000 - 0x00007ffc31721000 	C:\Windows\System32\ucrtbase.dll
+0x00007ffc2b290000 - 0x00007ffc2b2a8000 	c:\Users\Nestor Corneille\.antigravity\extensions\redhat.java-1.54.0-win32-x64\jre\21.0.10-win32-x86_64\bin\jli.dll
+0x00007ffc32120000 - 0x00007ffc322cf000 	C:\Windows\System32\USER32.dll
+0x00007ffc315e0000 - 0x00007ffc31606000 	C:\Windows\System32\win32u.dll
+0x00007ffc33460000 - 0x00007ffc33489000 	C:\Windows\System32\GDI32.dll
+0x00007ffc314c0000 - 0x00007ffc315d8000 	C:\Windows\System32\gdi32full.dll
+0x00007ffc317f0000 - 0x00007ffc3188a000 	C:\Windows\System32\msvcp_win.dll
+0x00007ffc24c20000 - 0x00007ffc24c3e000 	c:\Users\Nestor Corneille\.antigravity\extensions\redhat.java-1.54.0-win32-x64\jre\21.0.10-win32-x86_64\bin\VCRUNTIME140.dll
+0x00007ffc1b430000 - 0x00007ffc1b6c3000 	C:\Windows\WinSxS\amd64_microsoft.windows.common-controls_6595b64144ccf1df_6.0.22621.3672_none_2713b9d173822955\COMCTL32.dll
+0x00007ffc32070000 - 0x00007ffc32117000 	C:\Windows\System32\msvcrt.dll
+0x00007ffc31fe0000 - 0x00007ffc32011000 	C:\Windows\System32\IMM32.DLL
+0x00007ffc2d4e0000 - 0x00007ffc2d4ec000 	c:\Users\Nestor Corneille\.antigravity\extensions\redhat.java-1.54.0-win32-x64\jre\21.0.10-win32-x86_64\bin\vcruntime140_1.dll
+0x00007ffc12560000 - 0x00007ffc125ed000 	c:\Users\Nestor Corneille\.antigravity\extensions\redhat.java-1.54.0-win32-x64\jre\21.0.10-win32-x86_64\bin\msvcp140.dll
+0x00007ffb999a0000 - 0x00007ffb9a741000 	c:\Users\Nestor Corneille\.antigravity\extensions\redhat.java-1.54.0-win32-x64\jre\21.0.10-win32-x86_64\bin\server\jvm.dll
+0x00007ffc31900000 - 0x00007ffc319b2000 	C:\Windows\System32\ADVAPI32.dll
+0x00007ffc31e40000 - 0x00007ffc31ee8000 	C:\Windows\System32\sechost.dll
+0x00007ffc31490000 - 0x00007ffc314b8000 	C:\Windows\System32\bcrypt.dll
+0x00007ffc325b0000 - 0x00007ffc326c4000 	C:\Windows\System32\RPCRT4.dll
+0x00007ffc331a0000 - 0x00007ffc33211000 	C:\Windows\System32\WS2_32.dll
+0x00007ffc30db0000 - 0x00007ffc30dfd000 	C:\Windows\SYSTEM32\POWRPROF.dll
+0x00007ffc2a7c0000 - 0x00007ffc2a7f4000 	C:\Windows\SYSTEM32\WINMM.dll
+0x00007ffc1b0d0000 - 0x00007ffc1b0da000 	C:\Windows\SYSTEM32\VERSION.dll
+0x00007ffc30d90000 - 0x00007ffc30da3000 	C:\Windows\SYSTEM32\UMPDC.dll
+0x00007ffc2fef0000 - 0x00007ffc2ff08000 	C:\Windows\SYSTEM32\kernel.appcore.dll
+0x00007ffc2b300000 - 0x00007ffc2b30a000 	c:\Users\Nestor Corneille\.antigravity\extensions\redhat.java-1.54.0-win32-x64\jre\21.0.10-win32-x86_64\bin\jimage.dll
+0x00007ffc2e8b0000 - 0x00007ffc2eae2000 	C:\Windows\SYSTEM32\DBGHELP.DLL
+0x00007ffc33640000 - 0x00007ffc339ce000 	C:\Windows\System32\combase.dll
+0x00007ffc322d0000 - 0x00007ffc323a7000 	C:\Windows\System32\OLEAUT32.dll
+0x00007ffc157a0000 - 0x00007ffc157d2000 	C:\Windows\SYSTEM32\dbgcore.DLL
+0x00007ffc30ee0000 - 0x00007ffc30f5b000 	C:\Windows\System32\bcryptPrimitives.dll
+0x00007ffc2a1d0000 - 0x00007ffc2a1df000 	c:\Users\Nestor Corneille\.antigravity\extensions\redhat.java-1.54.0-win32-x64\jre\21.0.10-win32-x86_64\bin\instrument.dll
+0x00007ffc1d130000 - 0x00007ffc1d150000 	c:\Users\Nestor Corneille\.antigravity\extensions\redhat.java-1.54.0-win32-x64\jre\21.0.10-win32-x86_64\bin\java.dll
+
+JVMTI agents:
+c:\Users\Nestor Corneille\.antigravity\extensions\redhat.java-1.54.0-win32-x64\lombok\lombok-1.18.39-4050.jar path:none, loaded, not initialized, instrumentlib options:none
+
+dbghelp: loaded successfully - version: 4.0.5 - missing functions: none
+symbol engine: initialized successfully - sym options: 0x614 - pdb path: .;c:\Users\Nestor Corneille\.antigravity\extensions\redhat.java-1.54.0-win32-x64\jre\21.0.10-win32-x86_64\bin;C:\Windows\SYSTEM32;C:\Windows\WinSxS\amd64_microsoft.windows.common-controls_6595b64144ccf1df_6.0.22621.3672_none_2713b9d173822955;c:\Users\Nestor Corneille\.antigravity\extensions\redhat.java-1.54.0-win32-x64\jre\21.0.10-win32-x86_64\bin\server
+
+VM Arguments:
+jvm_args: --add-modules=ALL-SYSTEM --add-opens=java.base/java.util=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/sun.nio.fs=ALL-UNNAMED -Declipse.application=org.eclipse.jdt.ls.core.id1 -Dosgi.bundles.defaultStartLevel=4 -Declipse.product=org.eclipse.jdt.ls.core.product -Djava.import.generatesMetadataFilesAtProjectRoot=false -DDetectVMInstallationsJob.disabled=true -Dfile.encoding=utf8 -XX:+UseParallelGC -XX:GCTimeRatio=4 -XX:AdaptiveSizePolicyWeight=90 -Dsun.zip.disableMemoryMapping=true -Xmx2G -Xms100m -Xlog:disable -javaagent:c:\Users\Nestor Corneille\.antigravity\extensions\redhat.java-1.54.0-win32-x64\lombok\lombok-1.18.39-4050.jar 
+java_command: c:\Users\Nestor Corneille\.antigravity\extensions\redhat.java-1.54.0-win32-x64\server\plugins\org.eclipse.equinox.launcher_1.7.100.v20251111-0406.jar -configuration c:\Users\Nestor Corneille\AppData\Roaming\Antigravity\User\globalStorage\redhat.java\1.54.0\config_ss_win -data c:\Users\Nestor Corneille\AppData\Roaming\Antigravity\User\workspaceStorage\361cd7a72a232ae6941662571b4a6975\redhat.java\ss_ws --pipe=\\.\pipe\lsp-d57ba24d8dd4a53e619c99fb9deeaae9-sock
+java_class_path (initial): c:\Users\Nestor Corneille\.antigravity\extensions\redhat.java-1.54.0-win32-x64\server\plugins\org.eclipse.equinox.launcher_1.7.100.v20251111-0406.jar
+Launcher Type: SUN_STANDARD
+
+[Global flags]
+    uintx AdaptiveSizePolicyWeight                 = 90                                        {product} {command line}
+     intx CICompilerCount                          = 3                                         {product} {ergonomic}
+    uintx GCTimeRatio                              = 4                                         {product} {command line}
+   size_t InitialHeapSize                          = 104857600                                 {product} {command line}
+   size_t MaxHeapSize                              = 2147483648                                {product} {command line}
+   size_t MaxNewSize                               = 715653120                                 {product} {ergonomic}
+   size_t MinHeapDeltaBytes                        = 524288                                    {product} {ergonomic}
+   size_t MinHeapSize                              = 104857600                                 {product} {command line}
+   size_t NewSize                                  = 34603008                                  {product} {ergonomic}
+    uintx NonNMethodCodeHeapSize                   = 5832780                                {pd product} {ergonomic}
+    uintx NonProfiledCodeHeapSize                  = 122912730                              {pd product} {ergonomic}
+   size_t OldSize                                  = 70254592                                  {product} {ergonomic}
+    uintx ProfiledCodeHeapSize                     = 122912730                              {pd product} {ergonomic}
+    uintx ReservedCodeCacheSize                    = 251658240                              {pd product} {ergonomic}
+     bool SegmentedCodeCache                       = true                                      {product} {ergonomic}
+   size_t SoftMaxHeapSize                          = 2147483648                             {manageable} {ergonomic}
+     bool UseCompressedOops                        = true                           {product lp64_product} {ergonomic}
+     bool UseLargePagesIndividualAllocation        = false                                  {pd product} {ergonomic}
+     bool UseParallelGC                            = true                                      {product} {command line}
+
+Logging:
+Log output configuration:
+ #0: stdout all=off uptime,level,tags foldmultilines=false
+ #1: stderr all=off uptime,level,tags foldmultilines=false
+
+Release file:
+<release file has not been read>
+Environment Variables:
+JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-17.0.18.8-hotspot
+PATH=C:\Program Files\Eclipse Adoptium\jdk-17.0.18.8-hotspot\bin;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Users\Nestor Corneille\Desktop\mes projets\python\PhoneSploit-Pro-main\__PhoneSploit-Pro__;C:\Program Files (x86)\Nmap;C:\scrcpy;C:\xampp\php;C:\Program Files\Git\cmd;C:\ProgramData\ComposerSetup\bin;C:\Program Files\Microsoft SQL Server\150\Tools\Binn\;C:\Program Files\dotnet\;C:\xam\apache\bin;C:\john\run;C:\apktool;C:\cmdline\bin;C:\src\flutter\bin;C:\Program Files\Java\jdk-21\bin;C:\masm32\bin;C:\ta-lib\c\bin;C:\android\sdk\cmdline-tools\bin;C:\Android\Sdk\platform-tools;C:\Android\Sdk\cmdline-tools\latest\bin;C:\Android\Sdk\build-tools\34.0.0;C:\Program Files\Go\bin;C:\Program Files\Go\bin;C:\Users\Nestor Corneille\AppData\Local\Google\Cloud SDK\google-cloud-sdk\bin;C:\Program Files\PostgreSQL\17\lib;C:\Program Files\Redis\;C:\xampp_fin\php;C:\xampp_fin\mysql\bin;C:\Program Files\Docker\Docker\resources\bin;C:\Program Files\nodejs\;C:\Android\sdk\cmdline-tools\latest\bin;C:\Android\sdk\platform-tools;C:\Users\Nestor Corneille\AppData\Roaming\npm;C:\Users\Nestor Corneille\.antigravity\extensions\anthropic.claude-code-2.1.121-win32-x64\resources\native-binary;C:\ffmpeg\bin;C:\Users\Nestor Corneille\AppData\Local\Programs\Python\Python311\Scripts\;C:\Users\Nestor Corneille\AppData\Local\Programs\Python\Python311\;C:\Users\Nestor Corneille\AppData\Local\Programs\Python\Python312\Scripts\;C:\Users\Nestor Corneille\AppData\Local\Programs\Python\Python312\;C:\Users\Nestor Corneille\.cargo\bin;C:\Users\Nestor Corneille\AppData\Local\Programs\Python\Launcher\;C:\Users\Nestor Corneille\AppData\Local\Microsoft\WindowsApps;C:\scrcpy;C:\xampp\php;C:\Program Files\heroku\bin;C:\Users\Nestor Corneille\AppData\Roaming\Composer\vendor\bin;C:\portaudio;C:\Users\Nestor Corneille\anaconda3\condabin;C:\apktool;C:\cmdline\bin;C:\src\flutter\bin;C:\Users\Nestor Corneille\.dotnet\tools;C:\Program Files\Java\jdk-21\bin;C:\Users\Nestor Corneille\.fly\bin;C:\Users\Nestor Corneille\AppData\Local\Android\Sdk\platform-tools;C:\Users\Nestor Corneille\AppData\Local\Android\Sdk\emulator;C:\Users\Nestor Corneille\AppData\Local\Android\Sdk\tools;C:\Users\Nestor Corneille\AppData\Local\Programs\Microsoft VS Code\bin;C:\masm32\bin;C:\android\sdk\cmdline-tools\bin;C:\Android\Sdk\platform-tools;C:\Android\Sdk\cmdline-tools\latest\bin;C:\Android\Sdk\build-tools\34.0.0;C:\Users\Nestor Corneille\go\bin;C:\Program Files\Go\bin;C:\Users\Nestor Corneille\AppData\Local\Google\Cloud SDK\google-cloud-sdk\bin;C:\Users\Nestor Corneille\AppData\Local\Google\Cloud SDK\google-cloud-sdk\bin;C:\Program Files\PostgreSQL\17\lib;C:\Users\Nestor Corneille\AppData\Local\Programs\Ollama;C:\xampp_fin\php;C:\Antigravity\bin;C:\Users\Nestor Corneille\AppData\Roaming\npm;C:\Users\Nestor Corneille\.antigravity\extensions\anthropic.claude-code-2.1.121-win32-x64\resources\native-binary;C:\Users\Nestor Corneille\AppData\Local\GitHubDesktop\bin
+USERNAME=Nestor Corneille
+OS=Windows_NT
+PROCESSOR_IDENTIFIER=Intel64 Family 6 Model 78 Stepping 3, GenuineIntel
+TMP=C:\Users\NESTOR~1\AppData\Local\Temp
+TEMP=C:\Users\NESTOR~1\AppData\Local\Temp
+
+
+
+
+Periodic native trim disabled
+
+---------------  S Y S T E M  ---------------
+
+OS:
+ Windows 11 , 64 bit Build 22621 (10.0.22621.3958)
+OS uptime: 0 days 1:55 hours
+Hyper-V role detected
+
+CPU: total 4 (initial active 4) (2 cores per cpu, 2 threads per core) family 6 model 78 stepping 3 microcode 0xd6, cx8, cmov, fxsr, ht, mmx, 3dnowpref, sse, sse2, sse3, ssse3, sse4.1, sse4.2, popcnt, lzcnt, tsc, tscinvbit, avx, avx2, aes, erms, clmul, bmi1, bmi2, rtm, adx, fma, vzeroupper, clflush, clflushopt, hv, rdtscp, f16c
+Processor Information for the first 4 processors :
+  Max Mhz: 2801, Current Mhz: 2200, Mhz Limit: 2184
+
+Memory: 4k page, system-wide physical 8083M (69M free)
+TotalPageFile size 16274M (AvailPageFile size 1M)
+current process WorkingSet (physical memory assigned to process): 23M, peak: 23M
+current process commit charge ("private bytes"): 192M, peak: 192M
+
+vm_info: OpenJDK 64-Bit Server VM (21.0.10+7-LTS) for windows-amd64 JRE (21.0.10+7-LTS), built on 2026-01-20T00:00:00Z by "admin" with MS VC++ 17.12 (VS2022)
+
+END.

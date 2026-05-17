@@ -19,3 +19,16 @@ buildscript {
 }
 
 apply plugin: "com.facebook.react.rootproject"
+allprojects {
+    repositories {
+        mavenCentral()
+        google()
+        // Ce bloc intercepte et remplace jcenter() dans TOUTES les sous-dépendances obsolètes
+        maven {
+            url "apache.org"
+            content {
+                includeGroup "jcenter"
+            }
+        }
+    }
+}
