@@ -90,14 +90,14 @@ export async function triggerIntrusionAlert(cameraRef) {
 
   // ── ÉTAPE 4 : ENVOI EMAIL VIA EMAILJS ─────────────────────────────────────
   try {
-    const success = await sendAlertViaEmailJS(
+    const result = await sendAlertViaEmailJS(
       recipientEmail, photoPath, latitude, longitude, timestamp,
     );
-    console.log('[SecurityService] Step 4 — Alert sent:', success);
-    return success;
+    console.log('[SecurityService] Step 4 — Alert sent:', result.success, result.error || '');
+    return result;
   } catch (err) {
     console.error('[SecurityService] Step 4 failed (send):', err.message);
-    return false;
+    return { success: false, error: err.message };
   }
 }
 
@@ -192,7 +192,7 @@ async function sendAlertViaEmailJS(
       '[SecurityService] EmailJS not configured — set EMAILJS_SERVICE_ID, ' +
       'EMAILJS_TEMPLATE_ID and EMAILJS_PUBLIC_KEY in .env',
     );
-    return false;
+    return { success: false, error: 'CONFIG_MANQUANTE' };
   }
 
   const hasGPS = latitude !== null && longitude !== null;
@@ -231,18 +231,31 @@ async function sendAlertViaEmailJS(
 
   console.log('[SecurityService] Sending alert via EmailJS to:', recipientEmail);
 
-  const response = await fetch(EMAILJS_API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
+  return new Promise((resolve) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', EMAILJS_API_URL);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.setRequestHeader('origin', 'http://localhost');
+    xhr.timeout = 15000;
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        console.log('[SecurityService] EmailJS alert delivered successfully');
+        resolve({ success: true });
+      } else {
+        console.error('[SecurityService] EmailJS error:', xhr.status, xhr.responseText);
+        resolve({ success: false, error: `HTTP_${xhr.status}` });
+      }
+    };
+    xhr.onerror = () => {
+      console.error('[SecurityService] EmailJS network error');
+      resolve({ success: false, error: 'ERREUR_RESEAU' });
+    };
+    xhr.ontimeout = () => {
+      console.error('[SecurityService] EmailJS timeout');
+      resolve({ success: false, error: 'TIMEOUT' });
+    };
+
+    xhr.send(JSON.stringify(payload));
   });
-
-  if (!response.ok) {
-    const body = await response.text();
-    console.error('[SecurityService] EmailJS error:', response.status, body);
-    return false;
-  }
-
-  console.log('[SecurityService] EmailJS alert delivered successfully');
-  return true;
 }

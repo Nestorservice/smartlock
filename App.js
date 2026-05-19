@@ -11,7 +11,7 @@
  */
 
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import ConfigScreen from './src/screens/ConfigScreen';
 import LockScreen from './src/screens/LockScreen';
@@ -38,8 +38,10 @@ const App = () => {
   return (
     <NavigationContainer
       theme={{
+        ...DarkTheme,
         dark: true,
         colors: {
+          ...DarkTheme.colors,
           primary: COLORS.cyan,
           background: COLORS.background,
           card: COLORS.surface,

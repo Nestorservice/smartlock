@@ -14,7 +14,9 @@ import {
   Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { NativeModules } from 'react-native';
 import { translateInstructionWithGemini } from '../services/GeminiService';
+import { evaluateFormula } from '../services/MathService';
 import { COLORS, TYPOGRAPHY, SPACING, BORDERS, ANIMATION, GLOW } from '../theme';
 
 const KEY_FORMULA = 'formula';
@@ -55,8 +57,24 @@ const ConfigScreen = ({ navigation }) => {
     startHeaderFlicker();
     updateClock();
     const clockInterval = setInterval(updateClock, 1000);
+    checkLockStateOnMount();
     return () => clearInterval(clockInterval);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Au démarrage : si le service a déverrouillé en arrière-plan (reboot + secousses),
+  // rester sur ConfigScreen. Si le verrou est actif mais pas encore déverrouillé,
+  // naviguer vers LockScreen.
+  const checkLockStateOnMount = async () => {
+    if (!NativeModules.AegisLock) { return; }
+    try {
+      const alreadyUnlocked = await NativeModules.AegisLock.checkAndConsumeUnlock();
+      if (alreadyUnlocked) { return; } // Déjà authentifié par le service — on reste ici
+      const isActive = await NativeModules.AegisLock.isLockActive();
+      if (isActive) { navigation.navigate('LockScreen'); }
+    } catch (e) {
+      console.warn('[ConfigScreen] Lock state check failed:', e);
+    }
+  };
 
   const updateClock = () => {
     const now = new Date();
@@ -115,11 +133,38 @@ const ConfigScreen = ({ navigation }) => {
     ).start();
 
     try {
-      const result = await translateInstructionWithGemini(instruction);
-      setFormula(result);
+      const { formula: result, error: geminiError } = await translateInstructionWithGemini(instruction);
+
+      if (result === null) {
+        let detail = `Code d'erreur : ${geminiError}\n\n`;
+        if (geminiError === 'ERREUR_RESEAU') {
+          detail += 'Le téléphone ne peut pas joindre generativelanguage.googleapis.com. Ce domaine est peut-être bloqué sur ce réseau. Essaie avec les données mobiles.';
+        } else if (geminiError === 'TIMEOUT') {
+          detail += 'La requête a pris plus de 15 secondes. Connexion trop lente ou API inaccessible.';
+        } else if (geminiError === 'HTTP_400') {
+          detail += 'Requête invalide ou clé API incorrecte. Vérifie GEMINI_API_KEY dans le fichier .env et rebuil l\'APK.';
+        } else if (geminiError === 'HTTP_403') {
+          detail += 'Accès refusé — la GEMINI_API_KEY est invalide, expirée, ou l\'API Gemini n\'est pas activée dans Google Cloud Console.';
+        } else if (geminiError === 'HTTP_429') {
+          detail += 'Quota dépassé. Attends quelques minutes et réessaie.';
+        } else if (geminiError === 'REPONSE_VIDE' || geminiError === 'FORMULE_INVALIDE') {
+          detail += 'Gemini a répondu mais sans formule valide. Reformule ton instruction.';
+        } else {
+          detail += 'Vérifie ta connexion internet et la clé GEMINI_API_KEY dans .env.';
+        }
+        Alert.alert('⚠ GÉNÉRATION ÉCHOUÉE', detail, [{ text: 'OK' }]);
+      } else {
+        setFormula(result);
+        await AsyncStorage.setItem(KEY_FORMULA, result);
+        Alert.alert(
+          '✓ FORMULE MISE À JOUR',
+          `Nouvelle formule active :\n\n"${result}"\n\n(j = jour de la semaine, 1=Lun → 7=Dim)\n\nLa formule a été sauvegardée automatiquement.`,
+          [{ text: 'OK' }],
+        );
+      }
     } catch (error) {
       console.error('[ConfigScreen] Formula generation failed:', error.message);
-      setFormula(DEFAULT_FORMULA);
+      Alert.alert('ERREUR INATTENDUE', String(error.message));
     } finally {
       setIsGenerating(false);
       generatePulse.stopAnimation();
@@ -131,14 +176,14 @@ const ConfigScreen = ({ navigation }) => {
   const handleSaveConfiguration = async () => {
     const attempts = parseInt(maxAttempts, 10);
     if (isNaN(attempts) || attempts < 1 || attempts > 10) {
-      Alert.alert('INVALID INPUT', 'Max attempts must be between 1 and 10.');
+      Alert.alert('ENTRÉE INVALIDE', 'Le nombre de tentatives doit être entre 1 et 10.');
       setSaveStatus('error');
       setTimeout(() => setSaveStatus(null), 2000);
       return;
     }
 
     if (alertEmail.trim() && !isValidEmail(alertEmail)) {
-      Alert.alert('INVALID EMAIL', 'Please enter a valid alert email address.');
+      Alert.alert('EMAIL INVALIDE', 'Veuillez entrer une adresse email valide.');
       setSaveStatus('error');
       setTimeout(() => setSaveStatus(null), 2000);
       return;
@@ -166,8 +211,63 @@ const ConfigScreen = ({ navigation }) => {
     }
   };
 
-  const handleActivateLock = () => {
+  const handleActivateLock = async () => {
+    const savedFormula = await AsyncStorage.getItem(KEY_FORMULA) || DEFAULT_FORMULA;
+    const requiredShakes = evaluateFormula(savedFormula);
+
+    if (NativeModules.AegisLock) {
+      try {
+        await NativeModules.AegisLock.requestBatteryExemption();
+        // On passe la formule pour que le service puisse la réévaluer après reboot
+        await NativeModules.AegisLock.startService(savedFormula, requiredShakes);
+      } catch (e) {
+        console.warn('[ConfigScreen] Service start error:', e);
+      }
+    }
+
     navigation.navigate('LockScreen');
+  };
+
+  const handleTestEmail = async () => {
+    const storedEmail = await AsyncStorage.getItem(KEY_ALERT_EMAIL);
+    if (!storedEmail || !storedEmail.trim()) {
+      Alert.alert('EMAIL MANQUANT', 'Configure d\'abord un email d\'alerte dans le champ ci-dessus et sauvegarde.');
+      return;
+    }
+    Alert.alert('TEST EN COURS', 'Envoi de l\'email de test...');
+    try {
+      const { triggerIntrusionAlert } = require('../services/SecurityService');
+      const result = await triggerIntrusionAlert(null);
+      const success = result?.success ?? false;
+      const errorCode = result?.error ?? 'INCONNU';
+
+      if (success) {
+        Alert.alert('✓ SUCCÈS', 'Email envoyé ! Vérifie ta boîte de réception (et le dossier spam).');
+        return;
+      }
+
+      let errorDetail = `Code d'erreur : ${errorCode}\n\n`;
+      if (errorCode === 'CONFIG_MANQUANTE') {
+        errorDetail += 'Les variables EmailJS (EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, EMAILJS_PUBLIC_KEY) sont absentes du fichier .env. Remplis-les et rebuil l\'APK.';
+      } else if (errorCode === 'ERREUR_RESEAU') {
+        errorDetail += 'Le téléphone n\'arrive pas à joindre api.emailjs.com. Vérifie ta connexion internet (WiFi ou données mobiles).';
+      } else if (errorCode === 'TIMEOUT') {
+        errorDetail += 'La requête a pris plus de 15 secondes. Connexion trop lente ou site EmailJS inaccessible.';
+      } else if (errorCode.startsWith('HTTP_')) {
+        const code = errorCode.replace('HTTP_', '');
+        if (code === '401' || code === '403') {
+          errorDetail += 'Clé EmailJS invalide ou service ID incorrect. Vérifie dans le dashboard EmailJS.';
+        } else if (code === '400') {
+          errorDetail += 'Template ID incorrect ou variables du template manquantes. Vérifie le template EmailJS.';
+        } else {
+          errorDetail += `EmailJS a répondu avec une erreur ${code}. Consulte le dashboard EmailJS pour plus de détails.`;
+        }
+      }
+
+      Alert.alert('✗ ÉCHEC DE L\'ENVOI', errorDetail);
+    } catch (e) {
+      Alert.alert('ERREUR', String(e));
+    }
   };
 
   // BUG FIX: saveBorderColor starts from COLORS.border (not crimson) at rest
@@ -206,7 +306,7 @@ const ConfigScreen = ({ navigation }) => {
           <View style={styles.statusBar}>
             <View style={styles.statusLeft}>
               <View style={styles.onlineDot} />
-              <Text style={styles.statusBarText}>SYS ONLINE</Text>
+              <Text style={styles.statusBarText}>SYS EN LIGNE</Text>
             </View>
             <Text style={styles.statusBarText}>{systemTime}</Text>
             <View style={styles.statusRight}>
@@ -219,9 +319,9 @@ const ConfigScreen = ({ navigation }) => {
           <Animated.View style={[styles.header, { opacity: headerFlicker }]}>
             <View style={styles.headerCornerTL} />
             <View style={styles.headerCornerTR} />
-            <Text style={styles.headerLabel}>// TERMINAL CONTROL PANEL</Text>
+            <Text style={styles.headerLabel}>// PANNEAU DE CONTRÔLE</Text>
             <Text style={styles.headerTitle}>AEGISLOCK</Text>
-            <Text style={styles.headerSubtitle}>MILITARY-GRADE SECURITY CONFIGURATION</Text>
+            <Text style={styles.headerSubtitle}>CONFIGURATION SÉCURITÉ MILITAIRE</Text>
             <View style={styles.headerCornerBL} />
             <View style={styles.headerCornerBR} />
           </Animated.View>
@@ -232,7 +332,7 @@ const ConfigScreen = ({ navigation }) => {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionIndex}>01</Text>
-              <Text style={styles.sectionLabel}>AI FORMULA TERMINAL</Text>
+              <Text style={styles.sectionLabel}>TERMINAL FORMULE IA</Text>
               <View style={styles.sectionHeaderLine} />
             </View>
 
@@ -244,7 +344,7 @@ const ConfigScreen = ({ navigation }) => {
                   style={styles.terminalInput}
                   value={instruction}
                   onChangeText={setInstruction}
-                  placeholder="Describe unlock rule in natural language..."
+                  placeholder="Décris la règle de déverrouillage en langage naturel..."
                   placeholderTextColor={COLORS.slateDark}
                   multiline
                   numberOfLines={3}
@@ -265,7 +365,7 @@ const ConfigScreen = ({ navigation }) => {
                 disabled={isGenerating}
               >
                 <Text style={styles.generateButtonText}>
-                  {isGenerating ? '◈  PROCESSING...' : '◈  GENERATE FORMULA'}
+                  {isGenerating ? '◈  TRAITEMENT...' : '◈  GÉNÉRER LA FORMULE'}
                 </Text>
               </TouchableOpacity>
             </Animated.View>
@@ -273,10 +373,10 @@ const ConfigScreen = ({ navigation }) => {
             <View style={styles.formulaDisplay}>
               <View style={styles.formulaHeader}>
                 <View style={styles.formulaDot} />
-                <Text style={styles.formulaLabel}>ACTIVE FORMULA</Text>
+                <Text style={styles.formulaLabel}>FORMULE ACTIVE</Text>
               </View>
               <Text style={styles.formulaValue}>{formula}</Text>
-              <Text style={styles.formulaHint}>j = day of week  (1=MON → 7=SUN)</Text>
+              <Text style={styles.formulaHint}>j = jour de la semaine  (1=LUN → 7=DIM)</Text>
             </View>
           </View>
 
@@ -284,7 +384,7 @@ const ConfigScreen = ({ navigation }) => {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionIndex}>02</Text>
-              <Text style={styles.sectionLabel}>MODULE CONTROL</Text>
+              <Text style={styles.sectionLabel}>CONTRÔLE MODULES</Text>
               <View style={styles.sectionHeaderLine} />
             </View>
 
@@ -292,8 +392,8 @@ const ConfigScreen = ({ navigation }) => {
               <View style={styles.moduleInfo}>
                 <View style={[styles.moduleStatusDot, shakeEnabled && styles.moduleStatusDotActive]} />
                 <View>
-                  <Text style={styles.moduleName}>DYNAMIC SHAKE</Text>
-                  <Text style={styles.moduleDesc}>Accelerometer-based unlock gesture</Text>
+                  <Text style={styles.moduleName}>SECOUSSE DYNAMIQUE</Text>
+                  <Text style={styles.moduleDesc}>Déverrouillage par accéléromètre</Text>
                 </View>
               </View>
               <Switch
@@ -308,8 +408,8 @@ const ConfigScreen = ({ navigation }) => {
               <View style={styles.moduleInfo}>
                 <View style={[styles.moduleStatusDot, biometricsEnabled && styles.moduleStatusDotActive]} />
                 <View>
-                  <Text style={styles.moduleName}>BIOMETRIC AUTH</Text>
-                  <Text style={styles.moduleDesc}>Fingerprint sensor verification</Text>
+                  <Text style={styles.moduleName}>AUTH BIOMÉTRIQUE</Text>
+                  <Text style={styles.moduleDesc}>Vérification par empreinte digitale</Text>
                 </View>
               </View>
               <Switch
@@ -325,13 +425,13 @@ const ConfigScreen = ({ navigation }) => {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionIndex}>03</Text>
-              <Text style={styles.sectionLabel}>SECURITY PARAMETERS</Text>
+              <Text style={styles.sectionLabel}>PARAMÈTRES DE SÉCURITÉ</Text>
               <View style={styles.sectionHeaderLine} />
             </View>
 
             <View style={styles.paramBlock}>
-              <Text style={styles.paramLabel}>MAX UNLOCK ATTEMPTS</Text>
-              <Text style={styles.paramHint}>Range: 1 – 10  |  Triggers alert on exceed</Text>
+              <Text style={styles.paramLabel}>TENTATIVES MAX</Text>
+              <Text style={styles.paramHint}>Plage : 1 – 10  |  Déclenche alerte si dépassé</Text>
               <TextInput
                 style={styles.paramInput}
                 value={maxAttempts}
@@ -344,8 +444,8 @@ const ConfigScreen = ({ navigation }) => {
             </View>
 
             <View style={[styles.paramBlock, styles.paramBlockLast]}>
-              <Text style={styles.paramLabel}>ALERT EMAIL</Text>
-              <Text style={styles.paramHint}>Intrusion report destination</Text>
+              <Text style={styles.paramLabel}>EMAIL D'ALERTE</Text>
+              <Text style={styles.paramHint}>Destinataire du rapport d'intrusion</Text>
               <TextInput
                 style={styles.paramInputWide}
                 value={alertEmail}
@@ -377,27 +477,35 @@ const ConfigScreen = ({ navigation }) => {
                   saveStatus === 'error' && styles.saveButtonTextError,
                 ]}>
                   {saveStatus === 'success'
-                    ? '✓  CONFIGURATION SAVED'
+                    ? '✓  CONFIG SAUVEGARDÉE'
                     : saveStatus === 'error'
-                      ? '✗  SAVE FAILED'
-                      : '▸  SAVE CONFIGURATION'}
+                      ? '✗  SAUVEGARDE ÉCHOUÉE'
+                      : '▸  SAUVEGARDER'}
                 </Text>
               </TouchableOpacity>
             </Animated.View>
+
+            <TouchableOpacity
+              style={styles.testEmailButton}
+              onPress={handleTestEmail}
+              activeOpacity={ANIMATION.pressOpacity}
+            >
+              <Text style={styles.testEmailButtonText}>✉  TEST EMAIL ALERTE</Text>
+            </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.activateButton}
               onPress={handleActivateLock}
               activeOpacity={ANIMATION.pressOpacity}
             >
-              <Text style={styles.activateButtonText}>⬡  ACTIVATE LOCK</Text>
+              <Text style={styles.activateButtonText}>⬡  ACTIVER LE VERROU</Text>
             </TouchableOpacity>
           </View>
 
           {/* ── FOOTER ──────────────────────────────────────────────── */}
           <View style={styles.footer}>
             <View style={styles.footerDivider} />
-            <Text style={styles.footerText}>AEGISLOCK  //  ALL SYSTEMS NOMINAL</Text>
+            <Text style={styles.footerText}>AEGISLOCK  //  TOUS SYSTÈMES NOMINAUX</Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -800,6 +908,19 @@ const styles = StyleSheet.create({
   },
   saveButtonTextError: {
     color: COLORS.crimson,
+  },
+  testEmailButton: {
+    borderWidth: BORDERS.width,
+    borderColor: COLORS.slate,
+    paddingVertical: SPACING.sm + 2,
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+  },
+  testEmailButtonText: {
+    fontFamily: TYPOGRAPHY.fontFamily,
+    fontSize: TYPOGRAPHY.sizes.sm,
+    color: COLORS.slate,
+    letterSpacing: TYPOGRAPHY.letterSpacing.wide,
   },
   activateButton: {
     borderWidth: BORDERS.widthThick,

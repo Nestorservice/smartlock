@@ -7,6 +7,8 @@ import {
   Animated,
   StatusBar,
   Dimensions,
+  AppState,
+  NativeModules,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ReactNativeBiometrics from 'react-native-biometrics';
@@ -35,10 +37,10 @@ const LockScreen = ({ navigation }) => {
   const [currentShakes, setCurrentShakes] = useState(0);
   const [attemptCount, setAttemptCount] = useState(0);
   const [intrusionDetected, setIntrusionDetected] = useState(false);
-  const [statusMessage, setStatusMessage] = useState('INITIALIZING...');
+  const [statusMessage, setStatusMessage] = useState('INITIALISATION...');
   const [isConfigLoaded, setIsConfigLoaded] = useState(false);
-  // BUG FIX: live clock with state + interval
   const [clockDisplay, setClockDisplay] = useState('');
+  const [formulaDisplay, setFormulaDisplay] = useState('');
 
   const cameraRef = useRef(null);
   // BUG FIX: guard ref to prevent biometrics re-triggering on re-render
@@ -77,6 +79,33 @@ const LockScreen = ({ navigation }) => {
     return () => backHandler.remove();
   }, []);
 
+  // ── DÉTECTION UNLOCK PAR LE SERVICE NATIF ─────────────────────────────────
+  // Quand l'app revient au premier plan (ex: le service a détecté les secousses
+  // en arrière-plan et a relancé MainActivity), on vérifie si le service a
+  // validé un déverrouillage.
+  useEffect(() => {
+    const checkServiceUnlock = async () => {
+      if (!NativeModules.AegisLock) { return; }
+      try {
+        const shouldUnlock = await NativeModules.AegisLock.checkAndConsumeUnlock();
+        if (shouldUnlock) {
+          handleSuccessfulUnlock();
+        }
+      } catch (e) {
+        console.warn('[LockScreen] checkAndConsumeUnlock error:', e);
+      }
+    };
+
+    // Vérifier immédiatement au montage (cas: app relancée par le service)
+    checkServiceUnlock();
+
+    // Vérifier à chaque retour au premier plan
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') { checkServiceUnlock(); }
+    });
+    return () => sub.remove();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── CAMERA PERMISSION ──────────────────────────────────────────────────────
   // Request silently on mount — no UI shown, camera is only for covert capture
   useEffect(() => {
@@ -112,6 +141,7 @@ const LockScreen = ({ navigation }) => {
       const isBioEnabled = storedBio[1] === 'true';
       const maxAtt = parseInt(storedAttempts[1], 10) || DEFAULT_MAX_ATTEMPTS;
       const shakesRequired = evaluateFormula(formula);
+      setFormulaDisplay(formula);
 
       setShakeEnabled(isShakeEnabled);
       setBiometricsEnabled(isBioEnabled);
@@ -120,15 +150,15 @@ const LockScreen = ({ navigation }) => {
       setIsConfigLoaded(true);
 
       if (isShakeEnabled) {
-        setStatusMessage(`SHAKE TO UNLOCK — ${shakesRequired} REQUIRED`);
+        setStatusMessage(`SECOUER POUR DÉVERROUILLER — ${shakesRequired} REQUIS`);
       } else if (isBioEnabled) {
-        setStatusMessage('PLACE FINGER ON SENSOR');
+        setStatusMessage('POSE LE DOIGT SUR LE CAPTEUR');
       } else {
-        setStatusMessage('NO UNLOCK MODULE ACTIVE');
+        setStatusMessage('AUCUN MODULE ACTIF');
       }
     } catch (error) {
       console.error('[LockScreen] Config load failed:', error.message);
-      setStatusMessage('CONFIG ERROR');
+      setStatusMessage('ERREUR CONFIG');
     }
   };
 
@@ -144,7 +174,7 @@ const LockScreen = ({ navigation }) => {
         handleSuccessfulUnlock();
       } else {
         const remaining = Math.max(0, req - count);
-        setStatusMessage(`SHAKES REMAINING: ${remaining}`);
+        setStatusMessage(`SECOUSSES RESTANTES : ${remaining}`);
       }
       return req;
     });
@@ -228,10 +258,10 @@ const LockScreen = ({ navigation }) => {
   // ── EVENT HANDLERS ─────────────────────────────────────────────────────────
   const triggerBiometricAuth = async () => {
     try {
-      setStatusMessage('PLACE FINGER ON SENSOR');
+      setStatusMessage('POSE LE DOIGT SUR LE CAPTEUR');
       const rnBiometrics = new ReactNativeBiometrics();
       const { success, error } = await rnBiometrics.simplePrompt({
-        promptMessage: 'AegisLock biometric verification required',
+        promptMessage: 'Vérification biométrique AegisLock requise',
       });
 
       if (success) {
@@ -250,7 +280,10 @@ const LockScreen = ({ navigation }) => {
 
   const handleSuccessfulUnlock = () => {
     stopShakeDetection();
-    setStatusMessage('ACCESS GRANTED');
+    if (NativeModules.AegisLock) {
+      NativeModules.AegisLock.stopService().catch(() => {});
+    }
+    setStatusMessage('ACCÈS ACCORDÉ');
 
     Animated.timing(accessGrantedOpacity, {
       toValue: 1,
@@ -272,7 +305,7 @@ const LockScreen = ({ navigation }) => {
           handleIntrusionDetected();
         } else {
           const remaining = max - newCount;
-          setStatusMessage(`AUTH FAILED — ${remaining} ATTEMPT${remaining !== 1 ? 'S' : ''} REMAINING`);
+          setStatusMessage(`AUTH ÉCHOUÉE — ${remaining} TENTATIVE${remaining !== 1 ? 'S' : ''} RESTANTE${remaining !== 1 ? 'S' : ''}`);
           if (biometricsEnabled) {
             setTimeout(() => {
               biometricsTriggered.current = false;
@@ -290,7 +323,7 @@ const LockScreen = ({ navigation }) => {
   const handleIntrusionDetected = async () => {
     console.log('[LockScreen] !! INTRUSION DETECTED !!');
     setIntrusionDetected(true);
-    setStatusMessage('INTRUSION DETECTED');
+    setStatusMessage('INTRUSION DÉTECTÉE');
     stopShakeDetection();
     startIntrusionPulse();
     await triggerIntrusionAlert(cameraRef);
@@ -334,7 +367,7 @@ const LockScreen = ({ navigation }) => {
         {/* Inner ring with count */}
         <View style={[styles.sensorRingInner, { borderColor: ringColor }]}>
           <Text style={[styles.shakeCountText, { color: ringColor }]}>{remaining}</Text>
-          <Text style={styles.shakeCountLabel}>REMAINING</Text>
+          <Text style={styles.shakeCountLabel}>RESTANT</Text>
         </View>
 
         {/* Progress bar */}
@@ -352,7 +385,7 @@ const LockScreen = ({ navigation }) => {
         </View>
 
         <Text style={styles.progressText}>
-          {currentShakes} / {requiredShakes}  SHAKES DETECTED
+          {currentShakes} / {requiredShakes}  SECOUSSES DÉTECTÉES
         </Text>
       </View>
     );
@@ -394,7 +427,7 @@ const LockScreen = ({ navigation }) => {
               intrusionDetected ? styles.topBarDotRed : styles.topBarDotGreen,
             ]} />
             <Text style={styles.topBarText}>
-              {intrusionDetected ? 'BREACH' : 'SECURED'}
+              {intrusionDetected ? 'BRÈCHE' : 'SÉCURISÉ'}
             </Text>
           </View>
           <Text style={styles.topBarText}>AEGISLOCK</Text>
@@ -416,7 +449,7 @@ const LockScreen = ({ navigation }) => {
             styles.headerLabel,
             intrusionDetected && styles.headerLabelIntrusion,
           ]}>
-            {intrusionDetected ? '// SECURITY BREACH' : '// DEVICE SECURED'}
+            {intrusionDetected ? '// BRÈCHE SÉCURITÉ' : '// APPAREIL SÉCURISÉ'}
           </Text>
           <Text style={[
             styles.headerText,
@@ -431,6 +464,16 @@ const LockScreen = ({ navigation }) => {
           styles.divider,
           intrusionDetected && styles.dividerCrimson,
         ]} />
+
+        {/* ── FORMULE ACTIVE ──────────────────────────────────── */}
+        {formulaDisplay ? (
+          <View style={styles.formulaContainer}>
+            <Text style={styles.formulaLabel}>FORMULE ACTIVE</Text>
+            <Text style={[styles.formulaValue, intrusionDetected && { color: COLORS.crimson }]}>
+              {formulaDisplay}
+            </Text>
+          </View>
+        ) : null}
 
         {/* ── STATUS MESSAGE ──────────────────────────────────── */}
         <Animated.View style={[styles.statusContainer, { opacity: pulseAnim }]}>
@@ -451,7 +494,7 @@ const LockScreen = ({ navigation }) => {
             styles.attemptContainer,
             intrusionDetected && styles.attemptContainerCritical,
           ]}>
-            <Text style={styles.attemptLabel}>FAILED ATTEMPTS</Text>
+            <Text style={styles.attemptLabel}>TENTATIVES ÉCHOUÉES</Text>
             <Text style={[
               styles.attemptCount,
               intrusionDetected && styles.attemptCountCritical,
@@ -467,7 +510,7 @@ const LockScreen = ({ navigation }) => {
             <View style={styles.footerDivider} />
           </View>
           <View style={styles.footerContent}>
-            <Text style={styles.footerLabel}>AEGISLOCK  //  SECURITY ACTIVE</Text>
+            <Text style={styles.footerLabel}>AEGISLOCK  //  SÉCURITÉ ACTIVE</Text>
             {/* BUG FIX: live timestamp via state — no longer frozen at mount time */}
             <Text style={styles.footerTimestamp}>{clockDisplay}</Text>
           </View>
@@ -606,6 +649,30 @@ const styles = StyleSheet.create({
   },
   headerTextIntrusion: {
     color: COLORS.crimson,
+  },
+
+  // ── FORMULE ACTIVE ─────────────────────────────────────────────────────────
+  formulaContainer: {
+    alignItems: 'center',
+    marginBottom: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.xs,
+    borderWidth: 1,
+    borderColor: COLORS.borderDim,
+    backgroundColor: COLORS.surface,
+  },
+  formulaLabel: {
+    fontFamily: TYPOGRAPHY.fontFamily,
+    fontSize: TYPOGRAPHY.sizes.xxs,
+    color: COLORS.slateDark,
+    letterSpacing: TYPOGRAPHY.letterSpacing.wider,
+    marginBottom: 2,
+  },
+  formulaValue: {
+    fontFamily: TYPOGRAPHY.fontFamilyBold,
+    fontSize: TYPOGRAPHY.sizes.lg,
+    color: COLORS.cyan,
+    letterSpacing: TYPOGRAPHY.letterSpacing.normal,
   },
 
   // ── DIVIDER ────────────────────────────────────────────────────────────────
